@@ -120,7 +120,7 @@ class QueueSystem:
         elif clear_hexes_after_days > 0:
             now = datetime.datetime.now(tz=datetime.timezone.utc)
             days_ago = now - datetime.timedelta(days=clear_hexes_after_days)
-            self.clear_hexes(self, days_ago)
+            self.clear_hexes(days_ago)
             
         self._signify_restarted()
 
