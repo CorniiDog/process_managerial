@@ -21,5 +21,5 @@ license-files = ["LICEN[CS]E*"]
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/CorniiDog/lightning_parser_lib"
-Issues = "https://github.com/CorniiDog/lightning_parser_lib/issues"
+Homepage = "https://github.com/CorniiDog/process_managerial"
+Issues = "https://github.com/CorniiDog/process_managerial/issues"
