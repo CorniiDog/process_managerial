@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+lylout_db.db
+lylout_files/
+file_log.json
+result_cache.pkl
+strikes/
+output.log
+nohup.out
+log_dir/
+strikes_csv_files/
+cache_dir/
+strike_stitchings/
+processes/
+queue_log.txt
