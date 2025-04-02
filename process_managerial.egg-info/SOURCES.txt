@@ -1,0 +1,11 @@
+LICENSE
+README.md
+pyproject.toml
+process_managerial/QueueSystem.py
+process_managerial/__init__.py
+process_managerial/toolbox.py
+process_managerial.egg-info/PKG-INFO
+process_managerial.egg-info/SOURCES.txt
+process_managerial.egg-info/dependency_links.txt
+process_managerial.egg-info/top_level.txt
+tests/test.py

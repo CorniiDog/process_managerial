@@ -7,12 +7,9 @@ Description:
 """
 
 from .QueueSystem import QueueSystem, QueueStatus, FunctionPropertiesStruct
-from .toolbox import generate_time_based_hash
-
 
 __all__ = [
     "QueueSystem",
     "QueueStatus",
     "FunctionPropertiesStruct",
-    "generate_time_based_hash"
 ]
