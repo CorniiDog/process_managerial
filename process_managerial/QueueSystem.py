@@ -53,6 +53,7 @@ class FunctionPropertiesStruct:
                  end_time: Optional[str] = None,
                  status: QueueStatus = QueueStatus.CREATED,
                  output: str = "",
+                 keep_indefinitely: bool = False,
                  result: Any = None):
         self.unique_hex = unique_hex
         self.func = func
@@ -62,6 +63,7 @@ class FunctionPropertiesStruct:
         self.status = status
         self.output = output
         self.result = result
+        self.keep_indefinitely = keep_indefinitely
 
 
 class QueueSystem:
@@ -80,7 +82,7 @@ class QueueSystem:
         process_dir (str): Directory path for storing task status and results via pickle files.
         logger (logging.Logger): Logger instance for recording system events.
     """
-    def __init__(self, process_dir: str = "processes", log_path: Optional[str] = "queue_log.txt"):
+    def __init__(self, process_dir: str = "processes", log_path: Optional[str] = "queue_log.txt", clear_hexes_after_days: int = -1):
         """
         Initializes the QueueSystem.
         
@@ -112,7 +114,14 @@ class QueueSystem:
             formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
             rotating_handler.setFormatter(formatter)
             self.logger.addHandler(rotating_handler)
-        
+
+        if clear_hexes_after_days == 0:
+            self.clear_hexes(self)
+        elif clear_hexes_after_days > 0:
+            now = datetime.datetime.now(tz=datetime.timezone.utc)
+            days_ago = now - datetime.timedelta(days=clear_hexes_after_days)
+            self.clear_hexes(self, days_ago)
+            
         self._signify_restarted()
 
     def _signify_restarted(self):
@@ -167,6 +176,9 @@ class QueueSystem:
             task = self.get_properties(hex_val)
             with self._mutex:
                 if task is None or before_date is None or task.start_time < before_date:
+                    if task.keep_indefinitely: # Ignore if told to keep indefinitely
+                        continue
+                    
                     pkl_path = os.path.join(self.process_dir, hex_val + ".pkl")
                     try:
                         os.remove(pkl_path)
