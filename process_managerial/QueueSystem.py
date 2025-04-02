@@ -116,7 +116,7 @@ class QueueSystem:
             self.logger.addHandler(rotating_handler)
 
         if clear_hexes_after_days == 0:
-            self.clear_hexes(self)
+            self.clear_hexes()
         elif clear_hexes_after_days > 0:
             now = datetime.datetime.now(tz=datetime.timezone.utc)
             days_ago = now - datetime.timedelta(days=clear_hexes_after_days)
