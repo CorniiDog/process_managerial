@@ -216,6 +216,46 @@ class QueueSystem:
         """
         with self._mutex:
             return [path.split(".pkl")[0] for path in os.listdir(self.process_dir)] if self.process_dir else []
+        
+    def cancel_queue(self, unique_hex: str) -> bool:
+        """
+        Cancels a queued task identified by its unique hexadecimal identifier.
+
+        This function checks whether the task corresponding to the given unique_hex exists
+        and is in the QUEUED state. If the task is found and is queued, the function deletes
+        its associated pickle file from the process directory and removes the task from the
+        internal queue to ensure it will not be executed. It returns True if the cancellation
+        is successful; otherwise, it returns False.
+
+        Args:
+            unique_hex (str): The unique hexadecimal identifier of the task to be cancelled.
+
+        Returns:
+            bool: True if the task was successfully cancelled, False otherwise.
+        """
+        # Acquire mutex to safely check and update the task's pickle file.
+        with self._mutex:
+            task = self.get_properties(unique_hex)
+            # Only allow cancellation if the task exists and is in a QUEUED state.
+            if not task or task.status != QueueStatus.QUEUED:
+                return False
+            pkl_path = os.path.join(self.process_dir, unique_hex + ".pkl")
+            try:
+                os.remove(pkl_path)
+            except Exception as e:
+                self.logger.error(f"Error removing task {unique_hex}: {e}")
+                return False
+
+        # Remove the task from the internal queue.
+        with self.q.mutex:
+            # Filter out the task with the specified unique_hex.
+            filtered_queue = [item for item in list(self.q.queue) if item.unique_hex != unique_hex]
+            self.q.queue.clear()
+            self.q.queue.extend(filtered_queue)
+        
+        self.logger.info(f"Cancelled task {unique_hex}")
+        return True
+
 
     def get_all_hex_properties(self) -> List[FunctionPropertiesStruct]:
         """
