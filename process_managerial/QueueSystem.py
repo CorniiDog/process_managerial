@@ -217,6 +217,18 @@ class QueueSystem:
         with self._mutex:
             return [path.split(".pkl")[0] for path in os.listdir(self.process_dir)] if self.process_dir else []
 
+    def get_all_hex_properties(self) -> List[FunctionPropertiesStruct]:
+        """
+        Retrieves a list of all hexes and their properties.
+        
+        Returns:
+            List[FunctionPropertiesStruct]: A list of unique hexes and results.
+        """
+        hexes = self.get_hexes()
+        results = []
+        for hex in hexes:
+            results.append(self.get_properties(hex))
+
     def _update_status(self, function_properties: FunctionPropertiesStruct) -> bool:
         """
         Updates the status of a task by saving its properties to a pickle file.
