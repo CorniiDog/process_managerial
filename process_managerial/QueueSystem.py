@@ -176,7 +176,7 @@ class QueueSystem:
             task = self.get_properties(hex_val)
             with self._mutex:
                 if task is None or before_date is None or task.start_time < before_date:
-                    if task.keep_indefinitely: # Ignore if told to keep indefinitely
+                    if task and task.keep_indefinitely: # Ignore if told to keep indefinitely
                         continue
                     
                     pkl_path = os.path.join(self.process_dir, hex_val + ".pkl")
