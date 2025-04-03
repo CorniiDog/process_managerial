@@ -209,13 +209,29 @@ class QueueSystem:
 
     def get_hexes(self) -> List[str]:
         """
-        Retrieves a list of task identifiers based on the pickle files in the process directory.
-        
+        Retrieves a list of task identifiers based on the pickle files in the process directory,
+        sorted by the task's start_time (process date).
+
         Returns:
-            List[str]: A list of unique hexadecimal identifiers for stored tasks.
+            List[str]: A list of unique hexadecimal identifiers for stored tasks, sorted in ascending
+                    order by their start_time.
         """
         with self._mutex:
-            return [path.split(".pkl")[0] for path in os.listdir(self.process_dir)] if self.process_dir else []
+            hex_files = [file for file in os.listdir(self.process_dir) if file.endswith('.pkl')] if self.process_dir else []
+            tasks = []
+            for file in hex_files:
+                hex_val = file[:-4]  # Remove the '.pkl' extension.
+                pkl_path = os.path.join(self.process_dir, file)
+                try:
+                    with open(pkl_path, "rb") as f:
+                        task = pkl.load(f)
+                    tasks.append((hex_val, task.start_time))
+                except Exception as e:
+                    self.logger.error(f"Error loading properties for {hex_val}: {e}")
+            # Sort the tasks based on their start_time.
+            tasks.sort(key=lambda item: item[1])
+            return [hex_val for hex_val, _ in tasks]
+
         
     def cancel_queue(self, unique_hex: str) -> bool:
         """
