@@ -720,6 +720,16 @@ class QueueSystemLite:
         """
         with self._mutex:
             return list(self.tasks.values())
+        
+    def get_hexes(self) -> List[str]:
+        """
+        Returns a list of all in-memory task property hexes.
+        
+        Returns:
+            List[str]: A list containing the hex codes of all properties
+        """
+        with self._mutex:
+            return list(self.tasks.keys())
 
     def requeue_hex(self, unique_hex: str):
         """
