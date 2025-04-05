@@ -326,12 +326,13 @@ class QueueSystem:
                 self.logger.error(f"Error updating status for {function_properties.unique_hex}: {e}")
                 return False
 
-    def get_properties(self, unique_hex: str) -> Optional[FunctionPropertiesStruct]:
+    def get_properties(self, unique_hex: str, data_safe:bool = False) -> Optional[FunctionPropertiesStruct]:
         """
         Retrieves the properties of a task using its unique identifier.
         
         Args:
             unique_hex (str): The unique identifier of the task.
+            data_safe (bool): Return a data-safe properties dict that is pickle-able
         
         Returns:
             Optional[FunctionPropertiesStruct]: The task properties if found; otherwise, None.
@@ -343,6 +344,10 @@ class QueueSystem:
             if os.path.exists(pkl_path):
                 try:
                     with open(pkl_path, "rb") as f:
+                        if data_safe:
+                            data: FunctionPropertiesStruct = pkl.load(f)
+                            data.func = data.func.__name__
+
                         return pkl.load(f)
                 except Exception as e:
                     self.logger.error(f"Error loading properties for {unique_hex}: {e}")
@@ -698,18 +703,22 @@ class QueueSystemLite:
         self.logger.info(f"Cancelled task {unique_hex}")
         return True
 
-    def get_properties(self, unique_hex: str) -> Optional[FunctionPropertiesStruct]:
+    def get_properties(self, unique_hex: str, data_safe:bool = False) -> Optional[FunctionPropertiesStruct]:
         """
-        Retrieves the properties of an in-memory task using its unique identifier.
+        Retrieves the properties of a task using its unique identifier.
         
         Args:
             unique_hex (str): The unique identifier of the task.
+            data_safe (bool): Return a data-safe properties dict that is pickle-able
         
         Returns:
             Optional[FunctionPropertiesStruct]: The task properties if found; otherwise, None.
         """
         with self._mutex:
-            return self.tasks.get(unique_hex)
+            data = self.tasks.get(unique_hex)
+            if data_safe:
+                data.func = data.func.__name__
+            return data
 
     def get_all_hex_properties(self) -> List[FunctionPropertiesStruct]:
         """
