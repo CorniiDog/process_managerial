@@ -446,7 +446,7 @@ class QueueSystem:
     def wait_until_hex_finished(self, unique_hex: str):
         """
         Blocks the calling thread until the task with the specified unique hexadecimal identifier has finished processing.
-        
+        s
         Continuously polls the task's stored status until it reaches one of the terminal states: RETURNED_CLEAN,
         RETURNED_ERROR, or STOPPED. If the task is not found within a specified time, the method logs that the task
         is assumed to be finished.
