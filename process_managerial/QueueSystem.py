@@ -293,7 +293,7 @@ class QueueSystem:
         self.logger.info(f"Cancelled task {unique_hex}")
         return True
 
-    def get_all_hex_properties(self, data_safe:bool=True) -> List[FunctionPropertiesStruct]:
+    def get_all_hex_properties(self, data_safe:bool=True, exclude_result:bool = False) -> List[FunctionPropertiesStruct]:
         """
         Retrieves a list of all task properties stored in the processing directory.
         
@@ -303,7 +303,7 @@ class QueueSystem:
         hexes = self.get_hexes()
         results = []
         for hex_val in hexes:
-            results.append(self.get_properties(hex_val, data_safe=data_safe))
+            results.append(self.get_properties(hex_val, data_safe=data_safe, exclude_result=exclude_result))
         return results
 
     def _update_status(self, function_properties: FunctionPropertiesStruct) -> bool:
@@ -328,13 +328,14 @@ class QueueSystem:
                 self.logger.error(f"Error updating status for {function_properties.unique_hex}: {e}")
                 return False
 
-    def get_properties(self, unique_hex: str, data_safe:bool = True) -> Optional[FunctionPropertiesStruct]:
+    def get_properties(self, unique_hex: str, data_safe:bool = True, exclude_result = False) -> Optional[FunctionPropertiesStruct]:
         """
         Retrieves the properties of a task using its unique identifier.
         
         Args:
             unique_hex (str): The unique identifier of the task.
             data_safe (bool): Return a data-safe properties dict that is pickle-able
+            exclude_result (bool) : Set to true to exclude the result, for optimization purposes
         
         Returns:
             Optional[FunctionPropertiesStruct]: The task properties if found; otherwise, None.
@@ -349,7 +350,8 @@ class QueueSystem:
                         data: FunctionPropertiesStruct = pkl.load(f)
                         if data_safe:
                             data.func = data.func.__name__
-
+                        if exclude_result:
+                            data.result = None
                         return data
                 except Exception as e:
                     self.logger.error(f"Error loading properties for {unique_hex}: {e}")
@@ -705,25 +707,29 @@ class QueueSystemLite:
         self.logger.info(f"Cancelled task {unique_hex}")
         return True
 
-    def get_properties(self, unique_hex: str, data_safe:bool = True) -> Optional[FunctionPropertiesStruct]:
+    def get_properties(self, unique_hex: str, data_safe:bool = True, exclude_result = False) -> Optional[FunctionPropertiesStruct]:
         """
         Retrieves the properties of a task using its unique identifier.
         
         Args:
             unique_hex (str): The unique identifier of the task.
             data_safe (bool): Return a data-safe properties dict that is pickle-able
+            exclude_result (bool) : Set to true to exclude the result, for optimization purposes
         
         Returns:
             Optional[FunctionPropertiesStruct]: The task properties if found; otherwise, None.
         """
         with self._mutex:
             data = self.tasks.get(unique_hex)
+            data = copy.deepcopy(x=data) # Deep copy data
             if data_safe:
-                data = copy.deepcopy(data) # Deep copy data
+                data = copy.deepcopy(x=data) # Deep copy data
                 data.func = data.func.__name__
+            if exclude_result:
+                data.result = None
             return data
 
-    def get_all_hex_properties(self, data_safe:bool=True) -> List[FunctionPropertiesStruct]:
+    def get_all_hex_properties(self, data_safe:bool=True, exclude_result:bool = False) -> List[FunctionPropertiesStruct]:
         """
         Retrieves a list of all task properties stored in the processing directory.
         
@@ -733,7 +739,7 @@ class QueueSystemLite:
         hexes = self.get_hexes()
         results = []
         for hex_val in hexes:
-            results.append(self.get_properties(hex_val, data_safe=data_safe))
+            results.append(self.get_properties(hex_val, data_safe=data_safe, exclude_result=exclude_result))
         return results
         
     def get_hexes(self) -> List[str]:
