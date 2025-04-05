@@ -14,10 +14,8 @@ from logging.handlers import RotatingFileHandler
 from typing import Any, Callable, Optional, List
 from . import toolbox
 import os
-import dill
-dill.settings['recurse'] = True # allow recursion
-import dill as pkl
-
+import pickle as pkl
+import traceback
 from enum import Enum
 import datetime
 import time
@@ -192,7 +190,8 @@ class QueueSystem:
                         os.remove(pkl_path)
                         self.logger.info(f"Removed task {hex_val}")
                     except Exception as e:
-                        self.logger.error(f"Error removing task {hex_val}: {e}")
+                        error_msg = traceback.format_exc()
+                        self.logger.error(f"Error removing task {hex_val}: {e} (Traceback: {error_msg})")
             
 
 
@@ -235,7 +234,8 @@ class QueueSystem:
                         task = pkl.load(f)
                     tasks.append((hex_val, task.start_time))
                 except Exception as e:
-                    self.logger.error(f"Error loading properties for {hex_val}: {e}")
+                    error_msg = traceback.format_exc()
+                    self.logger.error(f"Error loading properties for {hex_val}: {e} (Traceback: {error_msg})")
             # Sort the tasks based on their start_time.
             tasks.sort(key=lambda item: item[1])
             return [hex_val for hex_val, _ in tasks]
@@ -267,7 +267,8 @@ class QueueSystem:
             try:
                 os.remove(pkl_path)
             except Exception as e:
-                self.logger.error(f"Error removing task {unique_hex}: {e}")
+                error_msg = traceback.format_exc()
+                self.logger.error(f"Error removing task {unique_hex}: {e} (Traceback: {error_msg})")
                 return False
 
         # Remove the task from the internal queue.
@@ -312,7 +313,8 @@ class QueueSystem:
                     pkl.dump(function_properties, f)
                 return True
             except Exception as e:
-                self.logger.error(f"Error updating status for {function_properties.unique_hex}: {e}")
+                error_msg = traceback.format_exc()
+                self.logger.error(f"Error updating status for {function_properties.unique_hex}: {e} (Traceback: {error_msg})")
                 return False
 
     def get_properties(self, unique_hex: str) -> Optional[FunctionPropertiesStruct]:
@@ -334,7 +336,8 @@ class QueueSystem:
                     with open(pkl_path, "rb") as f:
                         return pkl.load(f)
                 except Exception as e:
-                    self.logger.error(f"Error loading properties for {unique_hex}: {e}")
+                    error_msg = traceback.format_exc()
+                    self.logger.error(f"Error loading properties for {unique_hex}: {e} (Traceback: {error_msg})")
         return None
 
     def _worker(self):
@@ -366,7 +369,8 @@ class QueueSystem:
                     function_properties.output += f"Error executing {func.__name__}: {e}" + "\n"
                     function_properties.end_time = datetime.datetime.now(tz=datetime.timezone.utc)
                     self._update_status(function_properties)
-                    self.logger.error(f"Error executing {func.__name__}: {e}")
+                    error_msg = traceback.format_exc()
+                    self.logger.error(f"Error executing {func.__name__}: {e} (Traceback: {error_msg})")
                 finally:
                     self.logger.info(f"Finished {func.__name__}")
                     self.q.task_done()
