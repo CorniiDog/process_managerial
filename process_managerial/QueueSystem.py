@@ -169,7 +169,7 @@ class QueueSystem:
         """
         hexes = self.get_hexes()
         for hex_val in hexes:
-            function_properties = self.get_properties(hex_val)
+            function_properties = self.get_properties(hex_val, data_safe=False)
             queued_enums = [QueueStatus.QUEUED, QueueStatus.RUNNING]
             if function_properties and function_properties.status in queued_enums:
                 function_properties.status = QueueStatus.STOPPED
@@ -185,7 +185,7 @@ class QueueSystem:
         Args:
             unique_hex (str): The unique identifier of the task to be requeued.
         """
-        function_properties = self.get_properties(unique_hex)
+        function_properties = self.get_properties(unique_hex, data_safe=False)
         if function_properties:
             function_properties.status = QueueStatus.QUEUED
             function_properties.end_time = None
@@ -209,7 +209,7 @@ class QueueSystem:
         # Retrieve the list of task identifiers using the thread-safe get_hexes method.
         hexes = self.get_hexes()
         for hex_val in hexes:
-            task = self.get_properties(hex_val)
+            task = self.get_properties(hex_val, data_safe=False)
             with self._mutex:
                 if task is None or before_date is None or task.start_time < before_date:
                     if task and task.keep_indefinitely:
@@ -233,7 +233,7 @@ class QueueSystem:
         """
         hexes_after = []
         for hex_val in self.get_hexes():
-            task = self.get_properties(hex_val)
+            task = self.get_properties(hex_val, data_safe=False)
             if task and task.start_time > after_time:
                 hexes_after.append(hex_val)
         return hexes_after
@@ -275,7 +275,7 @@ class QueueSystem:
             bool: True if the task was successfully cancelled; False otherwise.
         """
         with self._mutex:
-            task = self.get_properties(unique_hex)
+            task = self.get_properties(unique_hex, data_safe=False)
             if not task or task.status != QueueStatus.QUEUED:
                 return False
             pkl_path = os.path.join(self.process_dir, unique_hex + ".pkl")
@@ -293,7 +293,7 @@ class QueueSystem:
         self.logger.info(f"Cancelled task {unique_hex}")
         return True
 
-    def get_all_hex_properties(self) -> List[FunctionPropertiesStruct]:
+    def get_all_hex_properties(self, data_safe:bool=True) -> List[FunctionPropertiesStruct]:
         """
         Retrieves a list of all task properties stored in the processing directory.
         
@@ -303,7 +303,7 @@ class QueueSystem:
         hexes = self.get_hexes()
         results = []
         for hex_val in hexes:
-            results.append(self.get_properties(hex_val))
+            results.append(self.get_properties(hex_val, data_safe=data_safe))
         return results
 
     def _update_status(self, function_properties: FunctionPropertiesStruct) -> bool:
@@ -328,7 +328,7 @@ class QueueSystem:
                 self.logger.error(f"Error updating status for {function_properties.unique_hex}: {e}")
                 return False
 
-    def get_properties(self, unique_hex: str, data_safe:bool = False) -> Optional[FunctionPropertiesStruct]:
+    def get_properties(self, unique_hex: str, data_safe:bool = True) -> Optional[FunctionPropertiesStruct]:
         """
         Retrieves the properties of a task using its unique identifier.
         
@@ -463,7 +463,7 @@ class QueueSystem:
         """
         emergency_yield = 0
         while True:
-            function_properties = self.get_properties(unique_hex)
+            function_properties = self.get_properties(unique_hex, data_safe=False)
             if function_properties is None:
                 emergency_yield += self.time_increment
                 if emergency_yield > self.time_to_wait:
@@ -705,7 +705,7 @@ class QueueSystemLite:
         self.logger.info(f"Cancelled task {unique_hex}")
         return True
 
-    def get_properties(self, unique_hex: str, data_safe:bool = False) -> Optional[FunctionPropertiesStruct]:
+    def get_properties(self, unique_hex: str, data_safe:bool = True) -> Optional[FunctionPropertiesStruct]:
         """
         Retrieves the properties of a task using its unique identifier.
         
@@ -723,15 +723,18 @@ class QueueSystemLite:
                 data.func = data.func.__name__
             return data
 
-    def get_all_hex_properties(self) -> List[FunctionPropertiesStruct]:
+    def get_all_hex_properties(self, data_safe:bool=True) -> List[FunctionPropertiesStruct]:
         """
-        Returns a list of all in-memory task properties.
+        Retrieves a list of all task properties stored in the processing directory.
         
         Returns:
-            List[FunctionPropertiesStruct]: A list containing the properties of all queued tasks.
+            List[FunctionPropertiesStruct]: A list of FunctionPropertiesStruct instances for all stored tasks.
         """
-        with self._mutex:
-            return list(self.tasks.values())
+        hexes = self.get_hexes()
+        results = []
+        for hex_val in hexes:
+            results.append(self.get_properties(hex_val, data_safe=data_safe))
+        return results
         
     def get_hexes(self) -> List[str]:
         """
