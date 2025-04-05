@@ -212,7 +212,7 @@ class QueueSystem:
             task = self.get_properties(hex_val, data_safe=False)
             with self._mutex:
                 if task is None or before_date is None or task.start_time < before_date:
-                    if task and task.keep_indefinitely:
+                    if task and task.keep_indefinitely or task.status in (QueueStatus.CREATED, QueueStatus.QUEUED, QueueStatus.RUNNING):
                         continue
                     pkl_path = os.path.join(self.process_dir, hex_val + ".pkl")
                     try:
@@ -622,7 +622,7 @@ class QueueSystemLite:
         with self._mutex:
             keys_to_remove = []
             for unique_hex, task in self.tasks.items():
-                if not task.keep_indefinitely and (before_date is None or task.start_time < before_date):
+                if not task.keep_indefinitely and (before_date is None or task.start_time < before_date) and not (task.status in (QueueStatus.CREATED, QueueStatus.QUEUED, QueueStatus.RUNNING)):
                     keys_to_remove.append(unique_hex)
             for key in keys_to_remove:
                 del self.tasks[key]
