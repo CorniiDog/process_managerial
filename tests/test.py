@@ -26,15 +26,15 @@ def main():
     qs.start_queuesystem()
     
     # Queue a task that will successfully complete.
-    hex_success = qs.queue_function(task_success, [5, 10])
+    hex_success = qs.queue_function(task_success, 5, 10)
     print(f"Queued task_success with hex: {hex_success}")
     
     # Queue a task that is designed to fail.
-    hex_failure = qs.queue_function(task_failure, [])
+    hex_failure = qs.queue_function(task_failure)
     print(f"Queued task_failure with hex: {hex_failure}")
     
     # Queue a task that prints a message.
-    hex_print = qs.queue_function(task_print, ["Hello, QueueSystem!"])
+    hex_print = qs.queue_function(task_print, "Hello, QueueSystem!")
     print(f"Queued task_print with hex: {hex_print}")
     
     # Wait individually for each task to finish.
@@ -68,6 +68,7 @@ def main():
     
     # Optional: Clear tasks older than a certain datetime.
     # Uncomment the following lines to remove pickle files for tasks with a start time before the cutoff.
+    # import datetime
     # cutoff_time = datetime.datetime.now() - datetime.timedelta(seconds=5)
     # qs.clear_hexes(before_date=cutoff_time)
     # print("\nCleared tasks before:", cutoff_time)
