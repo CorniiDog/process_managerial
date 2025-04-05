@@ -600,6 +600,31 @@ class QueueSystemLite:
         else:
             self.logger.warning("Queue system already running.")
 
+    def clear_hexes(self, before_date: datetime.datetime = None):
+        """
+        Clears tasks from the in-memory storage based on a given date.
+        
+        If before_date is provided, only tasks with a start_time earlier than before_date are removed.
+        If before_date is None, all tasks in memory (that are not marked with keep_indefinitely) are removed.
+        This method removes tasks from both the tasks dictionary and the task_list.
+        
+        Args:
+            before_date (datetime.datetime, optional): The datetime threshold. Tasks with a start_time
+                                                         earlier than this will be cleared.
+        """
+        with self._mutex:
+            keys_to_remove = []
+            for unique_hex, task in self.tasks.items():
+                if not task.keep_indefinitely and (before_date is None or task.start_time < before_date):
+                    keys_to_remove.append(unique_hex)
+            for key in keys_to_remove:
+                del self.tasks[key]
+            self.task_list = [task for task in self.task_list if task.unique_hex not in keys_to_remove]
+            if keys_to_remove:
+                self.logger.info(f"Cleared tasks: {', '.join(keys_to_remove)}")
+            else:
+                self.logger.info("No tasks were cleared.")
+
     def stop_queuesystem(self):
         """
         Signals the background worker thread to stop processing tasks.
