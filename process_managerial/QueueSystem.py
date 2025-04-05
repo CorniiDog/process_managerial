@@ -14,7 +14,10 @@ from logging.handlers import RotatingFileHandler
 from typing import Any, Callable, Optional, List
 from . import toolbox
 import os
+import dill
+dill.settings['recurse'] = True # allow recursion
 import dill as pkl
+
 from enum import Enum
 import datetime
 import time
