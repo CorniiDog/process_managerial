@@ -18,6 +18,8 @@ import pickle as pkl
 from enum import Enum
 import datetime
 import time
+import copy
+
 
 class QueueStatus(Enum):
     """
@@ -344,11 +346,11 @@ class QueueSystem:
             if os.path.exists(pkl_path):
                 try:
                     with open(pkl_path, "rb") as f:
+                        data: FunctionPropertiesStruct = pkl.load(f)
                         if data_safe:
-                            data: FunctionPropertiesStruct = pkl.load(f)
                             data.func = data.func.__name__
 
-                        return pkl.load(f)
+                        return data
                 except Exception as e:
                     self.logger.error(f"Error loading properties for {unique_hex}: {e}")
         return None
@@ -717,6 +719,7 @@ class QueueSystemLite:
         with self._mutex:
             data = self.tasks.get(unique_hex)
             if data_safe:
+                data = copy.deepcopy(data) # Deep copy data
                 data.func = data.func.__name__
             return data
 
