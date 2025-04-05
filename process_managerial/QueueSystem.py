@@ -14,7 +14,7 @@ from logging.handlers import RotatingFileHandler
 from typing import Any, Callable, Optional, List
 from . import toolbox
 import os
-import pickle as pkl
+import dill as pkl
 from enum import Enum
 import datetime
 import time

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "process_managerial"
-version = "0.1.11"
+version = "0.1.12"
 authors = [
   { name="Connor White", email="connor.sw.personal@gmail.com" },
 ]
@@ -18,7 +18,9 @@ classifiers = [
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
 
-dependencies = []
+dependencies = [
+  "dill"
+]
 
 [project.urls]
 Homepage = "https://github.com/CorniiDog/process_managerial"

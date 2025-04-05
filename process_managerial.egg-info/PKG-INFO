@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: process_managerial
-Version: 0.1.11
+Version: 0.1.12
 Summary: Connor's Process Managerial (PM) is a utility that processes and enques functions.
 Author-email: Connor White <connor.sw.personal@gmail.com>
 License-Expression: MIT
@@ -11,6 +11,7 @@ Classifier: Operating System :: OS Independent
 Requires-Python: >=3.9
 Description-Content-Type: text/markdown
 License-File: LICENSE
+Requires-Dist: dill
 Dynamic: license-file
 
 # Connor's Process Managerial (PM)
