@@ -2,6 +2,8 @@
 
 Connor's Process Managerial (PM) is a utility that processes and enques functions in a separate single thread. This is useful to handle multiple multiprocessed functions, and allows them all to run over a period of time without causing complex issues with multiprocessing.
 
+To install: `pip install process-managerial`
+
 Example code of usage:
 
 ```py
