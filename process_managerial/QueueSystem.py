@@ -399,40 +399,40 @@ class QueueSystem:
         self.is_running = False
         # Note: Additional logic would be required to join the thread if immediate termination is needed.
 
-        def queue_function(self, func: Callable, *args, **kwargs) -> str:
-            """
-            Adds a function and its arguments to the queue for asynchronous execution.
+    def queue_function(self, func: Callable, *args, **kwargs) -> str:
+        """
+        Adds a function and its arguments to the queue for asynchronous execution.
+        
+        The function and its arguments are encapsulated in a FunctionPropertiesStruct and
+        placed on the queue for processing by the worker thread.
+        
+        Args:
+            func (Callable): The function to be executed.
+            *args: Positional arguments for the function.
+            **kwargs: Keyword arguments for the function.
             
-            The function and its arguments are encapsulated in a FunctionPropertiesStruct and
-            placed on the queue for processing by the worker thread.
-            
-            Args:
-                func (Callable): The function to be executed.
-                *args: Positional arguments for the function.
-                **kwargs: Keyword arguments for the function.
-                
-            Returns:
-                str: A unique hexadecimal identifier associated with the queued task.
-            """
+        Returns:
+            str: A unique hexadecimal identifier associated with the queued task.
+        """
+        now, unique_hex = toolbox.generate_time_based_hash()
+
+        # Re-generate the unique_hex if it already exists in the process directory.
+        while unique_hex in self.get_hexes():
             now, unique_hex = toolbox.generate_time_based_hash()
 
-            # Re-generate the unique_hex if it already exists in the process directory.
-            while unique_hex in self.get_hexes():
-                now, unique_hex = toolbox.generate_time_based_hash()
+        function_properties = FunctionPropertiesStruct(
+            unique_hex=unique_hex,
+            func=func,
+            args=args,
+            kwargs=kwargs,
+            start_time=now,
+            status=QueueStatus.QUEUED
+        )
 
-            function_properties = FunctionPropertiesStruct(
-                unique_hex=unique_hex,
-                func=func,
-                args=args,
-                kwargs=kwargs,
-                start_time=now,
-                status=QueueStatus.QUEUED
-            )
-
-            if not self.is_running:
-                self.logger.warning("Warning: Queue system is not running. Task added but won't be processed until started.")
-            self.q.put(function_properties)
-            return unique_hex
+        if not self.is_running:
+            self.logger.warning("Warning: Queue system is not running. Task added but won't be processed until started.")
+        self.q.put(function_properties)
+        return unique_hex
 
     
     def wait_until_hex_finished(self, unique_hex: str):
