@@ -6,10 +6,11 @@ Description:
     It includes the QueueSystem module for managing tasks and the toolbox module for utility functions.
 """
 
-from .QueueSystem import QueueSystem, QueueStatus, FunctionPropertiesStruct
+from .QueueSystem import QueueSystem, QueueSystemLite, QueueStatus, FunctionPropertiesStruct
 
 __all__ = [
     "QueueSystem",
+    "QueueSystemLite",
     "QueueStatus",
     "FunctionPropertiesStruct",
 ]
