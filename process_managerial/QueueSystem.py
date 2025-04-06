@@ -609,6 +609,16 @@ class QueueSystemLite:
         else:
             self.logger.warning("Queue system already running.")
 
+    def clear_hex(self, unique_hex:str):
+        """
+        Clears a specific hex, as long as it is not running
+        
+        Args:
+            unique_hex (str): The hexcode to clear
+        """
+        self.task_list = [task for task in self.task_list if task.unique_hex != unique_hex]
+
+
     def clear_hexes(self, before_date: datetime.datetime = None):
         """
         Clears tasks from the in-memory storage based on a given date.
