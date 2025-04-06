@@ -616,7 +616,13 @@ class QueueSystemLite:
         Args:
             unique_hex (str): The hexcode to clear
         """
-        self.task_list = [task for task in self.task_list if task.unique_hex != unique_hex]
+        unique_hex_properties: FunctionPropertiesStruct = self.get_properties(unique_hex)
+        if not unique_hex_properties or unique_hex_properties.status not in (QueueStatus.STOPPED, QueueStatus.RETURNED_CLEAN, QueueStatus.RETURNED_ERROR):
+            raise(f"Cannot clear the hex. Either it does not exist or has not reached a stopping point")
+        
+        with self._mutex:
+            del self.tasks[unique_hex] # Delete key from hex
+            self.task_list = [task for task in self.task_list if task.unique_hex != unique_hex]
 
 
     def clear_hexes(self, before_date: datetime.datetime = None):
