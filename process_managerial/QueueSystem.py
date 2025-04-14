@@ -211,15 +211,18 @@ class QueueSystem:
         for hex_val in hexes:
             task = self.get_properties(hex_val, data_safe=False)
             with self._mutex:
-                if task is None or before_date is None or task.start_time < before_date:
-                    if task and task.keep_indefinitely or task.status in (QueueStatus.CREATED, QueueStatus.QUEUED, QueueStatus.RUNNING):
-                        continue
+                # If a task exists, check if it should be preserved.
+                if task is not None and (task.keep_indefinitely or task.status in (QueueStatus.CREATED, QueueStatus.QUEUED, QueueStatus.RUNNING)):
+                    continue
+                # Proceed to remove if either before_date is None or the task's start time is before the threshold.
+                if before_date is None or (task is not None and task.start_time < before_date):
                     pkl_path = os.path.join(self.process_dir, hex_val + ".pkl")
                     try:
                         os.remove(pkl_path)
                         self.logger.info(f"Removed task {hex_val}")
                     except Exception as e:
                         self.logger.error(f"Error removing task {hex_val}: {e}")
+
 
     def get_hexes_after(self, after_time: datetime.datetime) -> List[str]:
         """
@@ -618,7 +621,8 @@ class QueueSystemLite:
         """
         unique_hex_properties: FunctionPropertiesStruct = self.get_properties(unique_hex)
         if not unique_hex_properties or unique_hex_properties.status not in (QueueStatus.STOPPED, QueueStatus.RETURNED_CLEAN, QueueStatus.RETURNED_ERROR):
-            raise(f"Cannot clear the hex. Either it does not exist or has not reached a stopping point")
+            raise Exception("Cannot clear the hex. Either it does not exist or has not reached a stopping point")
+
         
         with self._mutex:
             del self.tasks[unique_hex] # Delete key from hex
@@ -737,13 +741,14 @@ class QueueSystemLite:
         """
         with self._mutex:
             data = self.tasks.get(unique_hex)
-            data = copy.deepcopy(x=data) # Deep copy data
-            if data_safe:
-                data = copy.deepcopy(x=data) # Deep copy data
-                data.func = data.func.__name__
-            if exclude_result:
-                data.result = None
+            if data is not None:
+                data = copy.deepcopy(data)  # Standard deepcopy call.
+                if data_safe:
+                    data.func = data.func.__name__
+                if exclude_result:
+                    data.result = None
             return data
+
 
     def get_all_hex_properties(self, data_safe:bool=True, exclude_result:bool = False) -> List[FunctionPropertiesStruct]:
         """
