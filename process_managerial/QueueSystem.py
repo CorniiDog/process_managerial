@@ -261,6 +261,17 @@ class QueueSystemLite:
             unique_hexes = os.listdir(self.shelve_dir)
             unique_hexes = [unique_hex.replace(".pkl", "") for unique_hex in unique_hexes] # Replace pixkles with empty
             return unique_hexes
+        
+    def clear_shelved_hexes(self):
+        """
+        Clears all shelved hexes
+        """
+        with self._mutex:
+            os.makedirs(self.shelve_dir, exist_ok=True)
+            unique_hexes_files = os.listdir(self.shelve_dir)
+            for unique_hex_file in unique_hexes_files:
+                unique_hex_file_full = os.path.join(self.shelve_dir, unique_hex_file)
+                os.remove(unique_hex_file_full)
     
     def get_shelved_hex(self, unique_hex:str) -> FunctionPropertiesStruct:
         """
