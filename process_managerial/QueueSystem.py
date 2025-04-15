@@ -67,7 +67,8 @@ class FunctionPropertiesStruct:
                  status: QueueStatus = QueueStatus.CREATED,
                  output: str = "",
                  keep_indefinitely: bool = False,
-                 result: Any = None):
+                 result: Any = None,
+                 to_be_shelved: bool = False):
         """
         Initializes a new instance of FunctionPropertiesStruct.
 
@@ -93,6 +94,7 @@ class FunctionPropertiesStruct:
         self.output = output
         self.result = result
         self.keep_indefinitely = keep_indefinitely
+        self.to_be_shelved = to_be_shelved
 
 
 class QueueSystemLite:
@@ -141,7 +143,7 @@ class QueueSystemLite:
         else:
             logging.basicConfig(level=logging.INFO)
 
-    def queue_function(self, func: Callable, *args, **kwargs) -> str:
+    def queue_function(self, func: Callable, is_shelved=False, *args, **kwargs) -> str:
         """
         Queues a function for asynchronous execution in memory.
         
@@ -166,7 +168,9 @@ class QueueSystemLite:
                 args=args,
                 kwargs=kwargs,
                 start_time=now,
-                status=QueueStatus.QUEUED
+                status=QueueStatus.QUEUED,
+                to_be_shelved=is_shelved
+
             )
             self.task_list.append(task)
             self.tasks[unique_hex] = task
@@ -199,6 +203,13 @@ class QueueSystemLite:
                     task.output += f"Error executing {task.func.__name__}: {e}\n"
                     task.end_time = datetime.datetime.now(tz=datetime.timezone.utc)
                     self.logger.error(f"Error executing {task.func.__name__}: {e}")
+
+                try:
+                    if task.to_be_shelved: # Shelve hex
+                        self.shelve_hex(task.unique_hex)
+                except:
+                    pass
+
                 self.logger.info(f"Finished {task.func.__name__}")
             else:
                 time.sleep(0.1)
