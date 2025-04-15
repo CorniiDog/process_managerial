@@ -143,7 +143,42 @@ class QueueSystemLite:
         else:
             logging.basicConfig(level=logging.INFO)
 
-    def queue_function(self, func: Callable, is_shelved=False, *args, **kwargs) -> str:
+    def queue_function_shelved(self, func: Callable, *args, **kwargs) -> str:
+        """
+        Queues a function for asynchronous execution in memory. After execution, it 
+        shelves the result in a permanent storage.
+        
+        Generates a unique identifier for the task, creates a FunctionPropertiesStruct instance,
+        and adds it to both the task list and the tasks dictionary.
+        
+        Args:
+            func (Callable): The function to execute.
+            *args: Positional arguments for the function.
+            **kwargs: Keyword arguments for the function.
+        
+        Returns:
+            str: The unique hexadecimal identifier of the queued task.
+        """
+        return self._queue_function(func, True, *args, **kwargs)
+    
+    def queue_function(self, func: Callable, *args, **kwargs) -> str:
+        """
+        Queues a function for asynchronous execution in memory.
+        
+        Generates a unique identifier for the task, creates a FunctionPropertiesStruct instance,
+        and adds it to both the task list and the tasks dictionary.
+        
+        Args:
+            func (Callable): The function to execute.
+            *args: Positional arguments for the function.
+            **kwargs: Keyword arguments for the function.
+        
+        Returns:
+            str: The unique hexadecimal identifier of the queued task.
+        """
+        return self._queue_function(func, False, *args, **kwargs)
+
+    def _queue_function(self, func: Callable, is_shelved:bool,  *args, **kwargs) -> str:
         """
         Queues a function for asynchronous execution in memory.
         
