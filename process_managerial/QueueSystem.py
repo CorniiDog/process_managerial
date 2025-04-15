@@ -211,8 +211,8 @@ class QueueSystemLite:
         """
         if not self.is_running:
             self.is_running = True
-            thread = threading.Thread(target=self._worker, daemon=True)
-            thread.start()
+            self.thread = threading.Thread(target=self._worker, daemon=True)
+            self.thread.start()
             self.logger.info("Queue system started.")
         else:
             self.logger.warning("Queue system already running.")
@@ -224,18 +224,19 @@ class QueueSystemLite:
         Args:
             unique_hex (str): The unique hexcode identifier for the queue process
         """
-        os.makedirs(self.shelve_dir, exist_ok=True)
-        shelve_path = os.path.join(self.shelve_dir, unique_hex + ".pkl")
+        with self._mutex:
+            os.makedirs(self.shelve_dir, exist_ok=True)
+            shelve_path = os.path.join(self.shelve_dir, unique_hex + ".pkl")
 
-        if os.path.exists(shelve_path):
-            raise FileExistsError("Unique Hex Already Shelved")
+            if os.path.exists(shelve_path):
+                raise FileExistsError("Unique Hex Already Shelved")
 
-        hex_shelved = self.get_properties(unique_hex)
-        if hex_shelved: # If it exists
-            with open(shelve_path, 'wb') as f:
-                pkl.dump(hex_shelved, f)
-        else:
-            raise ValueError("Cannot find or locate the hex in memory.")
+            hex_shelved = self._get_properties(unique_hex)
+            if hex_shelved: # If it exists
+                with open(shelve_path, 'wb') as f:
+                    pkl.dump(hex_shelved, f)
+            else:
+                raise ValueError("Cannot find or locate the hex in memory.")
         
     def list_shelved_hexes(self) -> List[str]:
         """
@@ -244,10 +245,11 @@ class QueueSystemLite:
         Returns:
             List[str]: A list of shelved hexes
         """
-        os.makedirs(self.shelve_dir, exist_ok=True)
-        hexes = os.listdir(self.shelve_dir)
-        hexes = [hex.replace(".pkl", "") for hex in hexes] # Replace pixkles with empty
-        return hexes
+        with self._mutex:
+            os.makedirs(self.shelve_dir, exist_ok=True)
+            unique_hexes = os.listdir(self.shelve_dir)
+            unique_hexes = [unique_hex.replace(".pkl", "") for unique_hex in unique_hexes] # Replace pixkles with empty
+            return unique_hexes
     
     def get_shelved_hex(self, unique_hex:str) -> FunctionPropertiesStruct:
         """
@@ -258,14 +260,15 @@ class QueueSystemLite:
         Returns:
             FunctionPropertiesStruct: The function properties that have data
         """
-        os.makedirs(self.shelve_dir, exist_ok=True)
-        shelve_path = os.path.join(self.shelve_dir, unique_hex + ".pkl")
+        with self._mutex:
+            os.makedirs(self.shelve_dir, exist_ok=True)
+            shelve_path = os.path.join(self.shelve_dir, unique_hex + ".pkl")
 
-        if not os.path.exists(shelve_path):
-            raise FileNotFoundError(f"Unique hex is not shelved: {unique_hex}.")
+            if not os.path.exists(shelve_path):
+                raise FileNotFoundError(f"Unique hex is not shelved: {unique_hex}.")
 
-        with open(shelve_path, 'rb') as f:
-            return pkl.load(f)
+            with open(shelve_path, 'rb') as f:
+                return pkl.load(f)
         
     def delete_shelved_hex(self, unique_hex:str):
         """
@@ -274,13 +277,14 @@ class QueueSystemLite:
         Args:
             unique_hex (str): The unique hexcode identifier from the queue process
         """
-        os.makedirs(self.shelve_dir, exist_ok=True)
-        shelve_path = os.path.join(self.shelve_dir, unique_hex + ".pkl")
+        with self._mutex:
+            os.makedirs(self.shelve_dir, exist_ok=True)
+            shelve_path = os.path.join(self.shelve_dir, unique_hex + ".pkl")
 
-        if not os.path.exists(shelve_path):
-            raise FileNotFoundError(f"Unique hex is not shelved: {unique_hex}.")
-        
-        os.remove(shelve_path) # Remove the file
+            if not os.path.exists(shelve_path):
+                raise FileNotFoundError(f"Unique hex is not shelved: {unique_hex}.")
+            
+            os.remove(shelve_path) # Remove the file
 
 
     def clear_hex(self, unique_hex:str):
@@ -290,12 +294,11 @@ class QueueSystemLite:
         Args:
             unique_hex (str): The hexcode to clear
         """
-        unique_hex_properties: FunctionPropertiesStruct = self.get_properties(unique_hex)
-        if not unique_hex_properties or unique_hex_properties.status not in (QueueStatus.STOPPED, QueueStatus.RETURNED_CLEAN, QueueStatus.RETURNED_ERROR, QueueStatus.QUEUED):
-            raise Exception("Cannot clear the hex. Either it does not exist or has not reached a stopping point")
-
-        
         with self._mutex:
+            unique_hex_properties: FunctionPropertiesStruct = self._get_properties(unique_hex)
+            if not unique_hex_properties or unique_hex_properties.status not in (QueueStatus.STOPPED, QueueStatus.RETURNED_CLEAN, QueueStatus.RETURNED_ERROR, QueueStatus.QUEUED):
+                raise Exception("Cannot clear the hex. Either it does not exist or has not reached a stopping point")
+            
             del self.tasks[unique_hex] # Delete key from hex
             self.task_list = [task for task in self.task_list if task.unique_hex != unique_hex]
 
@@ -333,6 +336,7 @@ class QueueSystemLite:
         """
         self.logger.info("Stopping queue system...")
         self.is_running = False
+        self.thread.join() # Join into main
 
     def wait_until_hex_finished(self, unique_hex: str):
         """
@@ -397,6 +401,16 @@ class QueueSystemLite:
             task.end_time = datetime.datetime.now(tz=datetime.timezone.utc)
         self.logger.info(f"Cancelled task {unique_hex}")
         return True
+    
+    def _get_properties(self, unique_hex: str, data_safe:bool = True, exclude_result = False) -> Optional[FunctionPropertiesStruct]:
+        data = self.tasks.get(unique_hex)
+        if data is not None:
+            data = copy.deepcopy(data)  # Standard deepcopy call.
+            if data_safe:
+                data.func = data.func.__name__
+            if exclude_result:
+                data.result = None
+        return data
 
     def get_properties(self, unique_hex: str, data_safe:bool = True, exclude_result = False) -> Optional[FunctionPropertiesStruct]:
         """
@@ -411,14 +425,7 @@ class QueueSystemLite:
             Optional[FunctionPropertiesStruct]: The task properties if found; otherwise, None.
         """
         with self._mutex:
-            data = self.tasks.get(unique_hex)
-            if data is not None:
-                data = copy.deepcopy(data)  # Standard deepcopy call.
-                if data_safe:
-                    data.func = data.func.__name__
-                if exclude_result:
-                    data.result = None
-            return data
+            return self._get_properties(unique_hex=unique_hex, data_safe=data_safe, exclude_result=exclude_result)
 
 
     def get_all_hex_properties(self, data_safe:bool=True, exclude_result:bool = False) -> List[FunctionPropertiesStruct]:
@@ -428,11 +435,12 @@ class QueueSystemLite:
         Returns:
             List[FunctionPropertiesStruct]: A list of FunctionPropertiesStruct instances for all stored tasks.
         """
-        hexes = self.get_hexes()
-        results = []
-        for hex_val in hexes:
-            results.append(self.get_properties(hex_val, data_safe=data_safe, exclude_result=exclude_result))
-        return results
+        with self._mutex:
+            hexes = self.get_hexes()
+            results = []
+            for hex_val in hexes:
+                results.append(self._get_properties(hex_val, data_safe=data_safe, exclude_result=exclude_result))
+            return results
         
     def get_hexes(self) -> List[str]:
         """
