@@ -492,8 +492,9 @@ class QueueSystemLite:
         Returns:
             List[FunctionPropertiesStruct]: A list of FunctionPropertiesStruct instances for all stored tasks.
         """
+        hexes = self.get_hexes()
+        
         with self._mutex:
-            hexes = self.get_hexes()
             results = []
             for hex_val in hexes:
                 results.append(self._get_properties(hex_val, data_safe=data_safe, exclude_result=exclude_result))
